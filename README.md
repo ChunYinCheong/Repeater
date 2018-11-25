@@ -5,6 +5,8 @@ Using pynput
 Repeat "z" every second
 
 Esc = Exit
-"`" = Start / Stop
-Hold "`" + "Other key" to change key
+
+"\`" = Start / Stop
+
+Hold "\`" + "Other key" to change key
 
