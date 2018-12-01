@@ -1,6 +1,6 @@
 import time
 import threading
-from pynput.keyboard import Key, Controller, Listener
+from pynput.keyboard import Key, Controller, Listener, KeyCode
 
 class Worker(threading.Thread):    
     def __init__(self, *args, **kwargs):
@@ -12,42 +12,25 @@ class Worker(threading.Thread):
         while self.running:
             print('Running')
             keyboard.press(self.repeat_key)
+            time.sleep(0.02)
             keyboard.release(self.repeat_key)
             time.sleep(self.interval)
 
 class Repeater():
     def __init__(self, *args, **kwargs):
         self.worker = None
-        self.on_off_key = '`'
-        self.exit_key = Key.esc
-        self.changing_key = False
         self.repeat_key = 'z'
         self.interval = 1
 
-    def change_key(self,key):
-        if key != self.on_off_key and key != self.exit_key:
-            self.repeat_key = key
-            return True
-        return False
-
-    def on_press(self,key):        
-        if getattr(key,'char',None) == self.on_off_key:  
-            self.changing_key = True
-        elif self.changing_key:
-            self.change_key(key)
-
-        if key == self.exit_key:
-            return False
-        
-    def on_release(self,key):
-        if getattr(key,'char',None) == self.on_off_key:
-            self.changing_key = False            
-            if self.worker:
-                self.stop_repeat()
-            else:
-                self.start_repeat()
+    def switch(self):      
+        if self.worker:
+            self.stop_repeat()
+        else:
+            self.start_repeat()
 
     def start_repeat(self):
+        if self.worker:
+            self.stop_repeat()
         print('Start worker')
         self.worker = Worker()
         self.worker.daemon = False
@@ -56,19 +39,43 @@ class Repeater():
         self.worker.start()
 
     def stop_repeat(self):
-        print('Stop worker')
-        self.worker.running = False
-        self.worker = None
+        if self.worker:
+            print('Stop worker')
+            self.worker.running = False
+            self.worker = None
 
-    def listen(self):
-        # Collect events until released
-        with Listener(
-                on_press=self.on_press,
-                on_release=self.on_release) as listener:
-            listener.join()
+class Hotkey():
+    def __init__(self, *args, **kwargs):
+        self.changing_key = False
+        #self.on_off_key = KeyCode.from_vk(192) # "`" Key`
+        self.on_off_key = KeyCode.from_char('`')
+        self.exit_key = Key.esc
+    
+    def change_key(self,key):
+        if self.repeater:
+            if key != self.on_off_key and key != self.exit_key:
+                self.repeater.repeat_key = key
 
+    def on_press(self,key):
+        if key == self.exit_key:
+            return False      
+        if key == self.on_off_key:  
+            self.changing_key = True
+        elif self.changing_key:
+            self.change_key(key)
+        
+    def on_release(self,key):
+        if key == self.on_off_key:
+            self.changing_key = False
+            if self.repeater:
+                self.repeater.switch()
 
 if __name__ == "__main__":
     r = Repeater()
-    r.listen()    
+    h = Hotkey()
+    h.repeater = r
+    with Listener(
+        on_press=h.on_press,
+        on_release=h.on_release) as listener:
+        listener.join()
     
