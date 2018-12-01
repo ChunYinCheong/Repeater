@@ -20,7 +20,22 @@ class Repeater():
     def __init__(self, *args, **kwargs):
         self.worker = None
         self.repeat_key = 'z'
-        self.interval = 1
+        self._interval = 1
+
+    @property
+    def running(self):
+        return self.worker is not None
+
+    @property
+    def interval(self):
+        return self._interval
+
+    @interval.setter
+    def interval(self,value):
+        if value > 0:
+            self._interval = value
+            if self.worker:
+                self.worker.interval = value
 
     def switch(self):      
         if self.worker:
@@ -50,15 +65,25 @@ class Hotkey():
         #self.on_off_key = KeyCode.from_vk(192) # "`" Key`
         self.on_off_key = KeyCode.from_char('`')
         self.exit_key = Key.esc
+        self.faster_key = Key.page_down
+        self.slower_key = Key.page_up
     
     def change_key(self,key):
         if self.repeater:
-            if key != self.on_off_key and key != self.exit_key:
+            if key not in [self.on_off_key, 
+                    self.exit_key, self.faster_key,
+                    self.slower_key]:
                 self.repeater.repeat_key = key
 
     def on_press(self,key):
         if key == self.exit_key:
-            return False      
+            return False
+        if key == self.faster_key:
+            self.repeater.interval -= 0.1
+            return
+        if key == self.slower_key:
+            self.repeater.interval += 0.1
+            return
         if key == self.on_off_key:  
             self.changing_key = True
         elif self.changing_key:
