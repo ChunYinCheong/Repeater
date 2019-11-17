@@ -24,9 +24,11 @@ class Hotkey():
             return False
         if key == self.faster_key:
             self.repeater.interval -= 0.1
+            print(self.repeater.interval)
             return
         if key == self.slower_key:
             self.repeater.interval += 0.1
+            print(self.repeater.interval)
             return
         if key == self.on_off_key:  
             self.changing_key = True
